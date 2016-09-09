@@ -1,5 +1,7 @@
 package com.myhashmap;
 
+import java.util.Arrays;
+
 /**
  *
  * @author jifeiqian
@@ -55,57 +57,140 @@ public class MyHashMap<K, V> {
 	}
 	
 	public MyHashMap(int cap, float loadFactor) {
-		
-		
+		if (cap <= 0) {
+			throw new IllegalArgumentException("cap can not be <= 0");
+		}
+		this.array =(Entry<K, V>[]) (new Entry[cap]);
+		this.size = cap;
+		this.loadFactor = loadFactor;
 	}
 	
+	//non-negative
 	private int hash(K key) {
-		
-		
+		//1.null key
+		if (key == null) {
+			return 0;
+		}
+		//2 hashCode()
+		//int code = key.hashCode();
+		//return code >= 0? code : -code;
+		//int range = [-2^31, 2^31 - 1]
+		//-Integer.MIN_VALUE = Integer.MIN_VALUE; ->overflow
+		return key.hashCode() & 0x7FFFFFFF;
+		//01111111 11111111 11111111 11111111
+		//Reason: java's % return remainder rather than modulus. The remainder can be negative
 	}
 	
-	private int getIndex(int hashNumber) {
-		
-		
+	private int getIndex(K key) {
+		return hash(key) % array.length;	
 	}
 	
 	private boolean equalsValue(V v1, V v2) {
-		
-		
+		return v1 == v2 || v1 != null && v1.equals(v2);
 	}
 	
 	private boolean equalsKey(K k1, K k2) {
-		
-		
+		return k1 == k2 || k1 != null && k1.equals(k2);
+	}
+	
+	private boolean needRehashing() {
+		float ratio = (size + 0.0f) / array.length;
+		return ratio >= loadFactor;
+	}
+	
+	private boolean rehashing() {
+		return true;
 	}
 	
 	public V get(K key) {
-		
+		int index = getIndex(key);
+		Entry<K, V> node = array[index];
+		while (node != null) {
+			if (equalsKey(node.getKey(), key)) {
+				return node.getValue();
+			}
+			node = node.next;
+		}
+		return null;
 	}
 	
-	public boolean put(K key, V value) {
+	public V put(K key, V value) {
+		int index = getIndex(key);
+		Entry<K, V> head = array[index];
+		Entry<K, V> node = head;
+		while (node != null) {
+			if (equalsKey(node.getKey(), key)) {
+				V result = node.getValue();
+				node.setValue(value);
+				return result;
+			}
+			node = node.next;
+		}
 		
-		
+		Entry<K, V> newEntry = new Entry(key, value);
+		newEntry.next = head;
+		array[index] = newEntry;
+		size++;
+		if (needRehashing()) {
+			//rehashing();
+		}
+		return null;
 	}
 	
-	public boolean remove(K key) {
-		
-		
+	public V remove(K key) {
+		int index = getIndex(key);
+		Entry<K, V> head = array[index];
+		if (equalsKey(head.getKey(), key)) {
+			V result = head.getValue();
+			array[index] = head.next;
+			size--;
+			return result;			
+		}
+
+		Entry<K, V> node = head;
+		while (node.next != null) {
+			if (equalsKey(node.next.getKey(), key)) {
+				V result = node.next.getValue();
+				node.next = node.next.next;
+				size--;
+				return result;
+			}
+			node = node.next;
+		}
+		return null;
 	}
 	
 	public boolean containsKey(K key) {
-		
-		
+		int index = getIndex(key);
+		Entry<K, V> node = array[index];
+		while (node != null) {
+			if (equalsKey(node.getKey(), key)) {
+				return true;
+			}
+			node = node.next;
+		}
+		return false;
 	}
 	
 	public boolean containsValue(V value) {
+		if (isEmpty()) {
+			return false;
+		}
 		
-		
-		
+		for (Entry<K, V> node : array) {
+			while (node != null) {
+				if (equalsValue(node.getValue(), value)) {
+					return true;
+				}
+				node = node.next;
+			}
+		}
+		return false;
 	}
 	
 	public void clear() {
-		
+		Arrays.fill(this.array, null);
+		size = 0;
 	}
 	
 	public int size() {
